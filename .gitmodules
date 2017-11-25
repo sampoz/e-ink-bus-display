@@ -1,0 +1,3 @@
+[submodule "epd-library-python"]
+	path = epd-library-python
+	url = https://github.com/soonuse/epd-library-python.git
