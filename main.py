@@ -25,13 +25,25 @@
  ##
 
 import epd2in7b
-import Image
-import ImageFont
-import ImageDraw
-#import imagedata
+from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw
+import requests
+import json
+from datetime import datetime
+
 
 COLORED = 1
 UNCOLORED = 0
+
+def convert_secs_to_time(secs):
+        h = (secs / 3600) % 24
+        m = (secs % 3600) / 60
+        if h < 10:
+                h = '0' + str(h);
+        if m < 10:
+                m = '0' + str(m);
+        return str(h) +':' + str(m);
 
 def main():
     epd = epd2in7b.EPD()
@@ -42,24 +54,48 @@ def main():
     frame_red = [0] * (epd.width * epd.height / 8)
 
     # For simplicity, the arguments are explicit numerical coordinates
-    epd.draw_rectangle(frame_black, 10, 130, 50, 180, COLORED);
-    epd.draw_line(frame_black, 10, 130, 50, 180, COLORED);
-    epd.draw_line(frame_black, 50, 130, 10, 180, COLORED);
-    epd.draw_circle(frame_black, 120, 150, 30, COLORED);
-    epd.draw_filled_rectangle(frame_red, 10, 200, 50, 250, COLORED);
-    epd.draw_filled_rectangle(frame_red, 0, 76, 176, 96, COLORED);
-    epd.draw_filled_circle(frame_red, 120, 220, 30, COLORED);
+    #epd.draw_rectangle(frame_black, 10, 130, 50, 180, COLORED);
+    #epd.draw_line(frame_black, 10, 130, 50, 180, COLORED);
+    #epd.draw_line(frame_black, 50, 130, 10, 180, COLORED);
+    #epd.draw_circle(frame_black, 120, 150, 30, COLORED);
+    #epd.draw_filled_rectangle(frame_red, 10, 200, 50, 250, COLORED);
+    #epd.draw_filled_rectangle(frame_red, 0, 76, 176, 96, COLORED);
+    #epd.draw_filled_circle(frame_red, 120, 220, 30, COLORED);
+
 
     # draw strings to the buffer
-    font = ImageFont.truetype('/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf', 18)
-    epd.draw_string_at(frame_black, 4, 50, "e-Paper Demo", font, COLORED)
-    epd.draw_string_at(frame_red, 18, 80, "Hello world!", font, UNCOLORED)
+    font = ImageFont.truetype('/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf', 32)
+    font_clock = ImageFont.truetype('/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf', 48)
+    font_date = ImageFont.truetype('/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf', 24)
+    # epd.draw_string_at(frame_red, 18, 80, " [o_o] [o_o]  ", font, COLORED)
+    # epd.draw_string_at(frame_red, 22, 110, " [o_o] ", font, COLORED)
+
+    # Draw time
+    epd.draw_string_at(frame_black, 15, 20, datetime.now().strftime('%H:%M'), font_clock, COLORED)
+    epd.draw_string_at(frame_black, 52, 65, datetime.now().strftime('%m-%d'), font_date, COLORED)
+
+
+    # Draw Temperature
+    headers = {"Content-Type":"application/graphql"}
+    r = requests.get('https://wttr.in/Otaniemi?format=j1')
+    #print r.text
+    data = json.loads(r.text)['current_condition']
+
+    epd.draw_string_at(frame_black, 5, 100, datetime.now().strftime('Tuntuu kuin:'), font_date, COLORED)
+
+    epd.draw_string_at(frame_red, 70, 130, data[0]['FeelsLikeC'], font, COLORED)
+
+    epd.draw_string_at(frame_black, 10, 170, datetime.now().strftime('Lampotila:'), font_date, COLORED)
+
+    epd.draw_string_at(frame_red, 80, 210, data[0]['temp_C'], font, COLORED)
+
+
     # display the frames
     epd.display_frame(frame_black, frame_red)
 
     # display images
-    frame_black = epd.get_frame_buffer(Image.open('black.bmp'))
-    frame_red = epd.get_frame_buffer(Image.open('red.bmp'))
+    #frame_black = epd.get_frame_buffer(Image.open('black.bmp'))
+    #frame_red = epd.get_frame_buffer(Image.open('red.bmp'))
     epd.display_frame(frame_black, frame_red)
 
     # You can get frame buffer from an image or import the buffer directly:
