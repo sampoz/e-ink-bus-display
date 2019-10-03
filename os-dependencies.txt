@@ -1,0 +1,19 @@
+# Remember to setup spi:
+#   sudo raspi-config
+#   Choose Interfacing Options -> SPI -> Yes  to enable SPI interface
+
+# Install python dependencies
+
+sudo apt-get update
+sudo apt-get install python-pip python-pil python-numpy wiringpi fonts-freefont-ttf
+sudo pip install RPi.GPIO spidev requests
+
+# Install spi-drivers
+wget http://www.airspayce.com/mikem/bcm2835/bcm2835-1.60.tar.gz
+tar zxvf bcm2835-1.60.tar.gz
+cd bcm2835-1.60/
+sudo ./configure
+sudo make
+sudo make check
+sudo make install
+#For more details, please refer to http://www.airspayce.com/mikem/bcm2835/
