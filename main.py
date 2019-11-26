@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 ##
  #  @filename   :   main.cpp
  #  @brief      :   2.9inch e-paper display (B) demo
@@ -31,6 +32,7 @@ from PIL import ImageDraw
 import requests
 import json
 from datetime import datetime
+import pickle
 
 
 COLORED = 1
@@ -64,15 +66,17 @@ def main():
 
 
     # draw strings to the buffer
-    font = ImageFont.truetype('/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf', 32)
-    font_clock = ImageFont.truetype('/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf', 48)
-    font_date = ImageFont.truetype('/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf', 24)
+    font = ImageFont.truetype('/home/pi/iosevka.ttf', 32)
+    font_clock = ImageFont.truetype('/home/pi/iosevka.ttf', 48)
+    font_date = ImageFont.truetype('/home/pi/iosevka.ttf', 24)
+    font_delta = ImageFont.truetype('/home/pi/iosevka.ttf', 20)
+
     # epd.draw_string_at(frame_red, 18, 80, " [o_o] [o_o]  ", font, COLORED)
     # epd.draw_string_at(frame_red, 22, 110, " [o_o] ", font, COLORED)
 
     # Draw time
-    epd.draw_string_at(frame_black, 15, 20, datetime.now().strftime('%H:%M'), font_clock, COLORED)
-    epd.draw_string_at(frame_black, 52, 65, datetime.now().strftime('%m-%d'), font_date, COLORED)
+    epd.draw_string_at(frame_black, 15, 10, datetime.now().strftime('%H:%M'), font_clock, COLORED)
+    epd.draw_string_at(frame_black, 52, 55, datetime.now().strftime('%m-%d'), font_date, COLORED)
 
 
     # Draw Temperature
@@ -81,14 +85,65 @@ def main():
     #print r.text
     data = json.loads(r.text)['current_condition']
 
-    epd.draw_string_at(frame_black, 5, 100, datetime.now().strftime('Tuntuu kuin:'), font_date, COLORED)
+    old_count = None
 
-    epd.draw_string_at(frame_red, 70, 130, data[0]['FeelsLikeC'], font, COLORED)
+    list_count = []
+    try:
+        with open('/tmp/kk2020', 'r') as f:
+           # Read the old count
+           dat = f.readlines()
+           old_count = dat[0]
+    except IOError:
+        print("Old status not found")
 
-    epd.draw_string_at(frame_black, 10, 170, datetime.now().strftime('Lampotila:'), font_date, COLORED)
+    try:
+        with open('/tmp/e-ink-log_5min', 'r') as f:
+           # Read the old count
+           list_count = pickle.load(f)
+    except IOError:
+        print("Old 5min status not found")
+    except EOFError:
+        print("EOF while reading file")
+        list_count = []
 
-    epd.draw_string_at(frame_red, 80, 210, data[0]['temp_C'], font, COLORED)
+    # Victory status
+    victory_count = requests.get('https://430.fi/kiitos/oikeudenmukaisia-ilmastotoimia/')
+    vc_body = str(victory_count.content)
+    s_idx = vc_body.find("counter-number")
+    vc = vc_body[s_idx:s_idx+100].split()
+    victory_count = int(vc[1].strip('\\n'))
 
+    # Append to list of values
+    list_count.append(victory_count)
+
+    try:
+        with open('/tmp/kk2020', 'w') as f:
+           # Read the old count
+           f.write(str(victory_count))
+    except IOError:
+        print("Something wrong with writing")
+
+    try:
+        with open('/tmp/kk2020_5min', 'w') as f:
+           # Read the old count
+           pickle.dump(list_count, f)
+    except IOError:
+        print("Something wrong with writing")
+
+
+    epd.draw_string_at(frame_black, 15, 90, u"Effective ℃", font_date, COLORED)
+
+    epd.draw_string_at(frame_red, 75, 120, data[0]['FeelsLikeC'], font, COLORED)
+
+    epd.draw_string_at(frame_black, 10, 160, datetime.now().strftime('Kunnollisuus:'), font_date, COLORED)
+
+    epd.draw_string_at(frame_red, 40, 190, str(victory_count), font, COLORED)
+
+    if old_count:
+            start = 30
+            epd.draw_string_at(frame_black, start, 235, u"Δ 1min:", font_delta, COLORED)
+
+            epd.draw_string_at(frame_red, start + 80, 235, str(victory_count - int(old_count)), font_delta, COLORED)
 
     # display the frames
     epd.display_frame(frame_black, frame_red)
@@ -100,6 +155,10 @@ def main():
 
     # You can get frame buffer from an image or import the buffer directly:
     #epd.display_frame(imagedata.IMAGE_BLACK, imagedata.IMAGE_RED)
+
+    print(str(list_count))
+    print(str(list_count[::-1]))
+    print(str((list_count[::-1])[::5]))
 
 if __name__ == '__main__':
     main()
