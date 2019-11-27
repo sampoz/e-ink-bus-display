@@ -47,6 +47,12 @@ def convert_secs_to_time(secs):
                 m = '0' + str(m);
         return str(h) +':' + str(m);
 
+def parse(req):
+        vc_body = str(req.content)
+        s_idx = vc_body.find("counter-number")
+        vc = vc_body[s_idx:s_idx+100].split()
+        return int(vc[1].strip('\\n'))
+
 def main():
     epd = epd2in7b.EPD()
     epd.init()
@@ -106,12 +112,17 @@ def main():
         print("EOF while reading file")
         list_count = []
 
+
     # Victory status
-    victory_count = requests.get('https://430.fi/kiitos/oikeudenmukaisia-ilmastotoimia/')
-    vc_body = str(victory_count.content)
-    s_idx = vc_body.find("counter-number")
-    vc = vc_body[s_idx:s_idx+100].split()
-    victory_count = int(vc[1].strip('\\n'))
+    url_list = ['https://430.fi/kiitos/hyvinvointiyhteiskunta-vahvemmaksi/',
+                'https://430.fi/kiitos/oikeudenmukaisia-ilmastotoimia/',
+                'https://430.fi/kiitos/lisaa-luonnon-monimuotoisuutta/']
+
+    victory_count = 0
+
+    for url in url_list:
+            req = requests.get(url)
+            victory_count = victory_count + parse(req)
 
     # Append to list of values
     list_count.append(victory_count)
@@ -156,9 +167,9 @@ def main():
     # You can get frame buffer from an image or import the buffer directly:
     #epd.display_frame(imagedata.IMAGE_BLACK, imagedata.IMAGE_RED)
 
-    print(str(list_count))
-    print(str(list_count[::-1]))
-    print(str((list_count[::-1])[::5]))
+    #print(str(list_count))
+    #print(str(list_count[::-1]))
+    #print(str((list_count[::-1])[::5]))
 
 if __name__ == '__main__':
     main()
